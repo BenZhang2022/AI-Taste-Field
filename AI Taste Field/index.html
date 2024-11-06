@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的个人网站</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">我的主页</div>
+            <ul class="nav-links">
+                <li><a href="#home" class="active" data-section="home">首页</a></li>
+                <li><a href="#about" data-section="about">关于我</a></li>
+                <li><a href="#gallery" data-section="gallery">相册</a></li>
+                <li><a href="#contact" data-section="contact">联系我</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <!-- 首页部分 -->
+        <section id="home" class="section active">
+            <div class="hero">
+                <h1>欢迎来到我的个人空间</h1>
+                <p>这里记录着我的生活点滴</p>
+            </div>
+            <div class="content-wrapper">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message assistant">
+                            <div class="message-content">
+                                你好！欢迎来到我的个人空间，很高兴见到你！
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="输入消息..." 
+                            rows="1"
+                            class="chat-input"
+                        ></textarea>
+                        <button id="sendMessage" class="send-button">发送</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 关于我部分 -->
+        <section id="about" class="section">
+            <div class="content-wrapper">
+                <h2>关于我</h2>
+                <div class="about-container">
+                    <div class="about-image">
+                        <img src="static/images/photo5.jpeg" alt="个人照片">
+                    </div>
+                    <div class="about-text">
+                        <p>王波啊，我的波波，我最最亲爱的波波， 现在我终于可以给你打电话了。我和你说句掏心窝子的话，这几年，我真他妈太难啦。你每天爬山，喝酒，打羽毛球。 我每天干啥？ 一会儿挨枪子儿，一会儿被人抓监狱的。 现在老子，川建国，又回来啦。</p>
+                        <button id="playAudio" class="audio-button">
+                            <img src="static/images/photo4.jpeg" alt="Trump" class="button-icon">
+                            <span class="button-text">Trump's Friend</span>
+                            <audio id="myAudio" src="static/audio/message.wav"></audio>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 相册部分 -->
+        <section id="gallery" class="section">
+            <div class="content-wrapper">
+                <h2>我的相册</h2>
+                <div class="carousel">
+                    <div class="carousel-inner">
+                        <img src="static/images/photo1.jpeg" class="active" alt="照片1">
+                        <img src="static/images/photo2.jpeg" alt="照片2">
+                        <img src="static/images/photo3.jpeg" alt="照片3">
+                    </div>
+                    <button class="carousel-prev">❮</button>
+                    <button class="carousel-next">❯</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 联系方式部分 -->
+        <section id="contact" class="section">
+            <div class="content-wrapper">
+                <h2>联系我</h2>
+                <div class="social-links">
+                    <a href="#" class="social-icon">
+                        <span>微博</span>
+                    </a>
+                    <a href="#" class="social-icon">
+                        <span>微信</span>
+                    </a>
+                    <a href="#" class="social-icon">
+                        <span>抖音</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html> 
