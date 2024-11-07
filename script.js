@@ -129,33 +129,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // 修改聊天功能相关的代码
-    async function callOllama(message) {
-        try {
-            const response = await fetch('http://localhost:11434/api/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    model: "qwen2.5:7b",
-                    prompt: message,
-                    stream: false
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('网络响应出错');
-            }
-
-            const data = await response.json();
-            return data.response;
-        } catch (error) {
-            console.error('调用 Ollama 出错:', error);
-            return '抱歉，我现在无法回应，请稍后再试。';
-        }
-    }
-
-    // 修改消息处理函数
     async function handleSend() {
         const message = messageInput.value.trim();
         if (message) {
@@ -173,14 +146,33 @@ document.addEventListener('DOMContentLoaded', function() {
             chatMessages.appendChild(loadingDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
-            // 调用 Ollama API
-            const response = await callOllama(message);
-            
-            // 移除加载状态
-            chatMessages.removeChild(loadingDiv);
-            
-            // 显示 AI 回复
-            addMessage(response, false);
+            try {
+                // 通过 Flask 服务器调用
+                const response = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                
+                // 移除加载状态
+                chatMessages.removeChild(loadingDiv);
+                
+                if (data.success) {
+                    // 显示 AI 回复
+                    addMessage(data.response, false);
+                } else {
+                    addMessage('抱歉，我遇到了一些问题：' + data.error, false);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // 移除加载状态
+                chatMessages.removeChild(loadingDiv);
+                addMessage('抱歉，发生了错误。', false);
+            }
         }
     }
 
