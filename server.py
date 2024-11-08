@@ -47,6 +47,14 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# 在文件开头的配置部分添加（在 UPLOAD_FOLDER 定义之后）
+BACKUP_FOLDER = 'static/ai_pictures_backup'
+# 确保备份目录存在
+if not os.path.exists(BACKUP_FOLDER):
+    os.makedirs(BACKUP_FOLDER)
+
+app.config['BACKUP_FOLDER'] = BACKUP_FOLDER  # 可选，如果需要在其他地方通过 app.config 访问
+
 # 数据库配置
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///images.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -153,24 +161,44 @@ def chat():
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     try:
+        logger.info("开始处理图片上传请求")
         if 'image' not in request.files:
+            logger.error("没有找到上传的文件")
             return jsonify({'success': False, 'error': 'No file part'}), 400
         
         file = request.files['image']
+        logger.info(f"接收到文件: {file.filename}")
+        
         if file.filename == '':
+            logger.error("文件名为空")
             return jsonify({'success': False, 'error': 'No selected file'}), 400
             
         if file and allowed_file(file.filename):
-            # 生成文件名和保存文件
+            # 生成文件名
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
             filename = timestamp + secure_filename(file.filename)
+            
+            # 确保目录存在
+            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            os.makedirs(BACKUP_FOLDER, exist_ok=True)
+            
+            # 先保存到备份目录
+            backup_path = os.path.join(BACKUP_FOLDER, filename)
+            file.save(backup_path)
+            logger.info(f"文件已保存到备份目录: {backup_path}")
+            
+            # 从备份复制到主目录
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
+            with open(backup_path, 'rb') as src:
+                with open(filepath, 'wb') as dst:
+                    dst.write(src.read())
+            logger.info(f"文件已复制到主目录: {filepath}")
             
             # 获取文件信息
             file_size = os.path.getsize(filepath)
             mime_type = file.content_type
             
+            logger.info("创建数据库记录")
             # 保存到数据库
             new_image = Image(
                 filename=filename,
@@ -181,6 +209,9 @@ def upload_image():
             )
             db.session.add(new_image)
             db.session.commit()
+            
+            logger.info(f"文件大小: {file_size} bytes")
+            logger.info(f"文件类型: {mime_type}")
             
             return jsonify({
                 'success': True,
@@ -202,8 +233,8 @@ def upload_image():
 @app.route('/get-images', methods=['GET'])
 def get_images():
     try:
-        # 从数据库获取所有图片信息
-        images = Image.query.order_by(Image.upload_date.desc()).all()
+        # 从数据库获取最新的10张图片
+        images = Image.query.order_by(Image.upload_date.desc()).limit(10).all()
         return jsonify({
             'success': True,
             'images': [{
@@ -217,6 +248,87 @@ def get_images():
         })
     except Exception as e:
         logger.error(f"Error getting images: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# 修改刷新图片的路由
+@app.route('/refresh-images', methods=['POST'])
+def refresh_images():
+    try:
+        logger.info("开始刷新图片")
+        
+        # 确保目录存在
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        
+        # 清空目标目录
+        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            if os.path.isfile(file_path):
+                logger.info(f"删除文件: {file_path}")
+                os.remove(file_path)
+        
+        # 从数据库获取最新的10张图片
+        images = Image.query.order_by(Image.upload_date.desc()).limit(10).all()
+        logger.info(f"从数据库获取了 {len(images)} 张图片")
+        
+        success_count = 0
+        for img in images:
+            try:
+                # 从备份目录复制文件
+                backup_path = os.path.join(BACKUP_FOLDER, img.filename)
+                target_path = os.path.join(app.config['UPLOAD_FOLDER'], img.filename)
+                
+                if os.path.exists(backup_path):
+                    logger.info(f"复制文件 {img.filename} 从备份到主目录")
+                    with open(backup_path, 'rb') as src:
+                        with open(target_path, 'wb') as dst:
+                            dst.write(src.read())
+                    success_count += 1
+                else:
+                    logger.warning(f"备份文件不存在: {backup_path}")
+                    
+            except Exception as e:
+                logger.error(f"复制文件 {img.filename} 时出错: {str(e)}")
+                continue
+        
+        logger.info(f"成功刷新了 {success_count} 张图片")
+        return jsonify({
+            'success': True,
+            'message': f'Successfully refreshed {success_count} images'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error refreshing images: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# 添加清理数据库记录的路由
+@app.route('/cleanup-images', methods=['POST'])
+def cleanup_images():
+    try:
+        logger.info("开始清理数据库中的无效图片记录")
+        
+        # 获取所有图片记录
+        all_images = Image.query.all()
+        removed_count = 0
+        
+        for img in all_images:
+            # 检查备份文件是否存在
+            backup_path = os.path.join(BACKUP_FOLDER, img.filename)
+            if not os.path.exists(backup_path):
+                logger.info(f"删除无效记录: {img.filename}")
+                db.session.delete(img)
+                removed_count += 1
+        
+        # 提交更改
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'已清理 {removed_count} 条无效记录'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"清理记录时出错: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':

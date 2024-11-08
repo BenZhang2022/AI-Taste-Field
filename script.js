@@ -276,6 +276,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const imageUpload = document.getElementById('imageUpload');
         const uploadButton = document.getElementById('uploadButton');
         const imageGrid = document.querySelector('.ai-image-grid');
+        const refreshButton = document.getElementById('refreshButton');
+        const cleanupButton = document.getElementById('cleanupButton');
 
         // 加载已有图片
         async function loadExistingImages() {
@@ -394,6 +396,68 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.style.display = "none";
             }
         });
+
+        // 添加刷新功能
+        async function refreshImages() {
+            try {
+                refreshButton.classList.add('loading');
+                refreshButton.textContent = '刷新中...';
+                
+                const response = await fetch(`${API_BASE_URL}/refresh-images`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 重新加载图片
+                    await loadExistingImages();
+                    alert('图片刷新成功！');
+                } else {
+                    alert('刷新失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Refresh error:', error);
+                alert('刷新出错，请重试');
+            } finally {
+                refreshButton.classList.remove('loading');
+                refreshButton.textContent = '刷新图片';
+            }
+        }
+
+        // 添加刷新按钮事件监听
+        refreshButton.addEventListener('click', refreshImages);
+
+        // 添加清理功能
+        async function cleanupImages() {
+            try {
+                cleanupButton.classList.add('loading');
+                cleanupButton.textContent = '清理中...';
+                
+                const response = await fetch(`${API_BASE_URL}/cleanup-images`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 重新加载图片
+                    await loadExistingImages();
+                    alert(data.message);
+                } else {
+                    alert('清理失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Cleanup error:', error);
+                alert('清理出错，请重试');
+            } finally {
+                cleanupButton.classList.remove('loading');
+                cleanupButton.textContent = '清理无效图片';
+            }
+        }
+
+        // 添加清理按钮事件监听
+        cleanupButton.addEventListener('click', cleanupImages);
     }
 
     // 在现有的 DOMContentLoaded 事件监听器中调用
