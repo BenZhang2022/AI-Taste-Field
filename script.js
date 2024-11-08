@@ -217,4 +217,54 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+
+    // 添加在适当的位置
+    function logToConsole(message, type = 'info') {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] ${message}`;
+        
+        switch(type) {
+            case 'error':
+                console.error(logMessage);
+                break;
+            case 'warn':
+                console.warn(logMessage);
+                break;
+            default:
+                console.log(logMessage);
+        }
+    }
+
+    // 在发送聊天请求时
+    async function sendMessage() {
+        logToConsole('Preparing to send message');
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: userInput })
+            });
+            
+            logToConsole(`Response status: ${response.status}`);
+            const data = await response.json();
+            
+            if (data.request_id) {
+                logToConsole(`Request ID: ${data.request_id}`);
+            }
+            if (data.process_time) {
+                logToConsole(`Processing time: ${data.process_time}`);
+            }
+            
+            if (data.success) {
+                logToConsole('Message sent and received successfully');
+            } else {
+                logToConsole(`Error: ${data.error}`, 'error');
+            }
+            
+        } catch (error) {
+            logToConsole(`Failed to send message: ${error}`, 'error');
+        }
+    }
 }); 
