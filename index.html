@@ -16,6 +16,7 @@
                 <li><a href="#about" data-section="about">关于我</a></li>
                 <li><a href="#gallery" data-section="gallery">相册</a></li>
                 <li><a href="#contact" data-section="contact">联系我</a></li>
+                <li><a href="#ai-gallery">AI图片</a></li>
             </ul>
         </div>
     </nav>
@@ -102,6 +103,22 @@
                 </div>
             </div>
         </section>
+
+        <!-- AI图片部分 -->
+        <div id="ai-gallery" class="section">
+            <h2>AI制作的图片</h2>
+            
+            <!-- 上传部分 -->
+            <div class="upload-section">
+                <input type="file" id="imageUpload" accept="image/*" multiple>
+                <button id="uploadButton">上传图片</button>
+            </div>
+            
+            <!-- 图片展示区域 -->
+            <div class="ai-image-grid">
+                <!-- 图片将在这里动态显示 -->
+            </div>
+        </div>
     </main>
 
     <script>

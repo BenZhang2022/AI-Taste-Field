@@ -270,4 +270,42 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 前端日志
     console.log("This will show in browser console only")
+
+    // 在 DOMContentLoaded 事件监听器中添加
+    function initAIGallery() {
+        const imageUpload = document.getElementById('imageUpload');
+        const uploadButton = document.getElementById('uploadButton');
+        const imageGrid = document.querySelector('.ai-image-grid');
+
+        uploadButton.addEventListener('click', async () => {
+            const files = imageUpload.files;
+            if (files.length === 0) {
+                alert('请先选择图片');
+                return;
+            }
+
+            for (const file of files) {
+                // 创建预览
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'image-container';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = file.name;
+                    
+                    imageContainer.appendChild(img);
+                    imageGrid.appendChild(imageContainer);
+                };
+                reader.readAsDataURL(file);
+            }
+
+            // 清空文件选择
+            imageUpload.value = '';
+        });
+    }
+
+    // 在现有的 DOMContentLoaded 事件监听器中调用
+    initAIGallery();
 }); 

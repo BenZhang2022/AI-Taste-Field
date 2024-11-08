@@ -3,4 +3,7 @@ __pycache__/
 .env
 .DS_Store
 venv/
-.vscode/ 
+.vscode/
+# 忽略日志目录
+logs/
+*.log 
