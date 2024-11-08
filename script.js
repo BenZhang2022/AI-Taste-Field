@@ -135,19 +135,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // 显示用户消息
             addMessage(message, true);
             
-            // 清空输入框
+            // 清空输入框 - 移到这里，在发送后立即清空
             messageInput.value = '';
             messageInput.style.height = 'auto';
             
             // 显示加载状态
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'message assistant';
-            loadingDiv.innerHTML = '<div class="message-content">正在思考...</div>';
+            loadingDiv.innerHTML = '<div class="message-content loading">正在思考</div>';
             chatMessages.appendChild(loadingDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             try {
-                // 通过 Flask 服务器调用
                 const response = await fetch(`${API_BASE_URL}/chat`, {
                     method: 'POST',
                     headers: {
@@ -156,22 +155,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({ message: message })
                 });
                 
+                console.log('Chat response status:', response.status);
                 const data = await response.json();
+                console.log('Chat response data:', data);
                 
                 // 移除加载状态
                 chatMessages.removeChild(loadingDiv);
                 
                 if (data.success) {
-                    // 显示 AI 回复
                     addMessage(data.response, false);
                 } else {
-                    addMessage('抱歉，我遇到了一些问题：' + data.error, false);
+                    addMessage('错误: ' + data.error, false);
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Chat error:', error);
                 // 移除加载状态
                 chatMessages.removeChild(loadingDiv);
-                addMessage('抱歉，发生了错误。', false);
+                addMessage('发送消息时出错，请重试', false);
             }
         }
     }
@@ -273,6 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 在 DOMContentLoaded 事件监听器中添加
     function initAIGallery() {
+        console.log('Current API_BASE_URL:', API_BASE_URL);
         const imageUpload = document.getElementById('imageUpload');
         const uploadButton = document.getElementById('uploadButton');
         const imageGrid = document.querySelector('.ai-image-grid');

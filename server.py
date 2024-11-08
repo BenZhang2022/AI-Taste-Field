@@ -33,9 +33,16 @@ logger = logging.getLogger(__name__)
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
-OLLAMA_API_URL = "http://localhost:11434/api/generate"
+# 确认这个地址是否正确
+OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"
 
 # 配置上传文件的存储位置
 UPLOAD_FOLDER = 'static/ai_pictures'
@@ -110,6 +117,19 @@ def chat():
         message = data.get('message')
         logger.info(f"[{request_id}] User message: {message}")
         
+        # 测试 Ollama 连接
+        try:
+            logger.info(f"[{request_id}] Testing Ollama connection...")
+            test_response = requests.get("http://localhost:11434/api/tags")
+            logger.info(f"[{request_id}] Ollama test response: {test_response.status_code}")
+        except Exception as e:
+            logger.error(f"[{request_id}] Ollama connection test failed: {str(e)}")
+            return jsonify({
+                "success": False,
+                "error": "Cannot connect to Ollama service",
+                "details": str(e)
+            }), 500
+
         logger.info(f"[{request_id}] Calling Ollama API at {OLLAMA_API_URL}")
         
         start_time = time.time()
