@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 # 禁用 werkzeug 默认日志
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
-app = Flask(__name__, static_url_path='')
-CORS(app)
+app = Flask(__name__, static_url_path='/static', static_folder='static')
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
 
@@ -83,7 +83,11 @@ def serve_index():
 
 @app.route('/static/<path:path>')
 def serve_static(path):
-    return send_from_directory('static', path)
+    try:
+        return send_from_directory('static', path)
+    except Exception as e:
+        logger.error(f"Error serving static file {path}: {str(e)}")
+        return jsonify({'error': 'File not found'}), 404
 
 @app.route('/script.js')
 def serve_script():
@@ -180,25 +184,27 @@ def upload_image():
             
             # 确保目录存在
             os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-            os.makedirs(BACKUP_FOLDER, exist_ok=True)
             
-            # 先保存到备份目录
-            backup_path = os.path.join(BACKUP_FOLDER, filename)
-            file.save(backup_path)
-            logger.info(f"文件已保存到备份目录: {backup_path}")
-            
-            # 从备份复制到主目录
+            # 保存文件
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            with open(backup_path, 'rb') as src:
-                with open(filepath, 'wb') as dst:
-                    dst.write(src.read())
-            logger.info(f"文件已复制到主目录: {filepath}")
+            file.save(filepath)
+            logger.info(f"文件已保存到: {filepath}")
             
             # 获取文件信息
             file_size = os.path.getsize(filepath)
             mime_type = file.content_type
             
-            logger.info("创建数据库记录")
+            # 获取完整的URL路径
+            base_url = request.url_root.rstrip('/')
+            file_url = f'{base_url}/static/ai_pictures/{filename}'
+            
+            # 验证文件是否成功保存
+            if not os.path.exists(filepath):
+                logger.error(f"文件保存失败: {filepath}")
+                return jsonify({'success': False, 'error': 'File save failed'}), 500
+                
+            logger.info(f"文件URL: {file_url}")
+            
             # 保存到数据库
             new_image = Image(
                 filename=filename,
@@ -210,13 +216,11 @@ def upload_image():
             db.session.add(new_image)
             db.session.commit()
             
-            logger.info(f"文件大小: {file_size} bytes")
-            logger.info(f"文件类型: {mime_type}")
-            
             return jsonify({
                 'success': True,
                 'filename': filename,
-                'path': f'/static/ai_pictures/{filename}',
+                'path': file_url,
+                'original_filename': file.filename,
                 'upload_date': new_image.upload_date.isoformat(),
                 'file_size': file_size,
                 'mime_type': mime_type
@@ -225,26 +229,37 @@ def upload_image():
         return jsonify({'success': False, 'error': 'File type not allowed'}), 400
         
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Upload error: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # 修改获取图片列表的路由
 @app.route('/get-images', methods=['GET'])
 def get_images():
     try:
-        # 从数据库获取最新的10张图片
         images = Image.query.order_by(Image.upload_date.desc()).limit(10).all()
+        base_url = request.url_root.rstrip('/')
+        
+        image_list = []
+        for img in images:
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], img.filename)
+            if os.path.exists(file_path):
+                image_list.append({
+                    'filename': img.filename,
+                    'path': f'{base_url}/static/ai_pictures/{img.filename}',
+                    'original_filename': img.original_filename,
+                    'upload_date': img.upload_date.isoformat(),
+                    'file_size': img.file_size,
+                    'mime_type': img.mime_type
+                })
+                logger.info(f"找到图片: {file_path}")
+            else:
+                logger.warning(f"图片文件不存在: {file_path}")
+        
         return jsonify({
             'success': True,
-            'images': [{
-                'filename': img.filename,
-                'path': img.path,
-                'original_filename': img.original_filename,
-                'upload_date': img.upload_date.isoformat(),
-                'file_size': img.file_size,
-                'mime_type': img.mime_type
-            } for img in images]
+            'images': image_list
         })
     except Exception as e:
         logger.error(f"Error getting images: {str(e)}")

@@ -305,13 +305,19 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const img = document.createElement('img');
             img.src = imageData.path;
-            img.alt = imageData.original_filename;
+            img.alt = imageData.original_filename || imageData.filename;
+            
+            // 添加错误处理
+            img.onerror = function() {
+                console.error('Failed to load image:', imageData.path);
+                this.src = 'static/images/error-image.png';  // 可以添加一个默认的错误图片
+            };
             
             // 添加图片信息
             const infoDiv = document.createElement('div');
             infoDiv.className = 'image-info';
             infoDiv.innerHTML = `
-                <div class="image-title">${imageData.original_filename}</div>
+                <div class="image-title">${imageData.original_filename || '未命名图片'}</div>
                 <div class="image-meta">
                     <span>上传时间: ${new Date(imageData.upload_date).toLocaleString()}</span>
                     <span>大小: ${(imageData.file_size / 1024).toFixed(2)} KB</span>
@@ -320,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 添加点击事件
             img.addEventListener('click', () => {
-                openModal(imageData.path, imageData.original_filename);
+                openModal(imageData.path, imageData.original_filename || imageData.filename);
             });
             
             imageContainer.appendChild(img);
