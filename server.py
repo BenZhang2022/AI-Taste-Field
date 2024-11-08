@@ -8,6 +8,7 @@ import time
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import base64
+from flask_sqlalchemy import SQLAlchemy
 
 # 创建logs目录（如果不存在）
 log_dir = 'logs'
@@ -45,6 +46,25 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# 数据库配置
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///images.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# 定义图片模型
+class Image(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(200), nullable=False)
+    path = db.Column(db.String(500), nullable=False)
+    original_filename = db.Column(db.String(200))
+    upload_date = db.Column(db.DateTime, default=datetime.utcnow)
+    file_size = db.Column(db.Integer)  # 文件大小（字节）
+    mime_type = db.Column(db.String(100))  # 文件类型
+
+# 在应用启动时创建数据库表
+with app.app_context():
+    db.create_all()
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -129,7 +149,7 @@ def chat():
             "request_id": request_id
         }), 500
 
-# 添加新的路由处理图片上传
+# 修改上传图片的路由
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     try:
@@ -141,37 +161,60 @@ def upload_image():
             return jsonify({'success': False, 'error': 'No selected file'}), 400
             
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            # 添加时间戳避免文件名重复
+            # 生成文件名和保存文件
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
-            filename = timestamp + filename
+            filename = timestamp + secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
+            
+            # 获取文件信息
+            file_size = os.path.getsize(filepath)
+            mime_type = file.content_type
+            
+            # 保存到数据库
+            new_image = Image(
+                filename=filename,
+                path=f'/static/ai_pictures/{filename}',
+                original_filename=file.filename,
+                file_size=file_size,
+                mime_type=mime_type
+            )
+            db.session.add(new_image)
+            db.session.commit()
             
             return jsonify({
                 'success': True,
                 'filename': filename,
-                'path': f'/static/ai_pictures/{filename}'
+                'path': f'/static/ai_pictures/{filename}',
+                'upload_date': new_image.upload_date.isoformat(),
+                'file_size': file_size,
+                'mime_type': mime_type
             })
             
         return jsonify({'success': False, 'error': 'File type not allowed'}), 400
         
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Upload error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# 添加获取所有图片的路由
+# 修改获取图片列表的路由
 @app.route('/get-images', methods=['GET'])
 def get_images():
     try:
-        images = []
-        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
-            if allowed_file(filename):
-                images.append({
-                    'filename': filename,
-                    'path': f'/static/ai_pictures/{filename}'
-                })
-        return jsonify({'success': True, 'images': images})
+        # 从数据库获取所有图片信息
+        images = Image.query.order_by(Image.upload_date.desc()).all()
+        return jsonify({
+            'success': True,
+            'images': [{
+                'filename': img.filename,
+                'path': img.path,
+                'original_filename': img.original_filename,
+                'upload_date': img.upload_date.isoformat(),
+                'file_size': img.file_size,
+                'mime_type': img.mime_type
+            } for img in images]
+        })
     except Exception as e:
         logger.error(f"Error getting images: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500

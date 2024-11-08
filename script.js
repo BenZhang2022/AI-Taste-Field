@@ -285,8 +285,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (data.success) {
                     imageGrid.innerHTML = ''; // 清空现有内容
-                    data.images.forEach(image => {
-                        addImageToGrid(image.path, image.filename);
+                    data.images.forEach(imageData => {
+                        addImageToGrid(imageData);
                     });
                 } else {
                     console.error('Failed to load images:', data.error);
@@ -297,20 +297,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // 添加图片到网格
-        function addImageToGrid(src, alt) {
+        function addImageToGrid(imageData) {
             const imageContainer = document.createElement('div');
             imageContainer.className = 'image-container';
             
             const img = document.createElement('img');
-            img.src = src;
-            img.alt = alt;
+            img.src = imageData.path;
+            img.alt = imageData.original_filename;
+            
+            // 添加图片信息
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'image-info';
+            infoDiv.innerHTML = `
+                <div class="image-title">${imageData.original_filename}</div>
+                <div class="image-meta">
+                    <span>上传时间: ${new Date(imageData.upload_date).toLocaleString()}</span>
+                    <span>大小: ${(imageData.file_size / 1024).toFixed(2)} KB</span>
+                </div>
+            `;
             
             // 添加点击事件
             img.addEventListener('click', () => {
-                openModal(src, alt);
+                openModal(imageData.path, imageData.original_filename);
             });
             
             imageContainer.appendChild(img);
+            imageContainer.appendChild(infoDiv);
             imageGrid.appendChild(imageContainer);
         }
 
@@ -335,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const data = await response.json();
                     
                     if (data.success) {
-                        addImageToGrid(data.path, data.filename);
+                        addImageToGrid(data);
                     } else {
                         alert('上传失败: ' + data.error);
                     }
