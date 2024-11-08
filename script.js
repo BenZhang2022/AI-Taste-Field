@@ -277,6 +277,44 @@ document.addEventListener('DOMContentLoaded', function() {
         const uploadButton = document.getElementById('uploadButton');
         const imageGrid = document.querySelector('.ai-image-grid');
 
+        // 加载已有图片
+        async function loadExistingImages() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/get-images`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    imageGrid.innerHTML = ''; // 清空现有内容
+                    data.images.forEach(image => {
+                        addImageToGrid(image.path, image.filename);
+                    });
+                } else {
+                    console.error('Failed to load images:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading images:', error);
+            }
+        }
+
+        // 添加图片到网格
+        function addImageToGrid(src, alt) {
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'image-container';
+            
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = alt;
+            
+            // 添加点击事件
+            img.addEventListener('click', () => {
+                openModal(src, alt);
+            });
+            
+            imageContainer.appendChild(img);
+            imageGrid.appendChild(imageContainer);
+        }
+
+        // 上传图片
         uploadButton.addEventListener('click', async () => {
             const files = imageUpload.files;
             if (files.length === 0) {
@@ -285,24 +323,64 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             for (const file of files) {
-                // 创建预览
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const imageContainer = document.createElement('div');
-                    imageContainer.className = 'image-container';
+                const formData = new FormData();
+                formData.append('image', file);
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/upload-image`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
                     
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.alt = file.name;
-                    
-                    imageContainer.appendChild(img);
-                    imageGrid.appendChild(imageContainer);
-                };
-                reader.readAsDataURL(file);
+                    if (data.success) {
+                        addImageToGrid(data.path, data.filename);
+                    } else {
+                        alert('上传失败: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    alert('上传出错，请重试');
+                }
             }
 
             // 清空文件选择
             imageUpload.value = '';
+        });
+
+        // 初始加载图片
+        loadExistingImages();
+
+        // 添加模态框相关功能
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        const modalCaption = document.getElementById('modalCaption');
+        const closeBtn = document.querySelector('.modal-close');
+
+        function openModal(src, alt) {
+            modal.style.display = "block";
+            modalImg.src = src;
+            modalCaption.textContent = alt;
+        }
+
+        // 关闭按钮事件
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = "none";
+        });
+
+        // 点击模态框外部关闭
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+
+        // ESC键关闭模态框
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.style.display === "block") {
+                modal.style.display = "none";
+            }
         });
     }
 

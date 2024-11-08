@@ -6,4 +6,6 @@ venv/
 .vscode/
 # 忽略日志目录
 logs/
-*.log 
+*.log
+# 忽略AI图片目录
+static/ai_pictures/

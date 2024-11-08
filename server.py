@@ -6,6 +6,8 @@ import os
 import logging
 import time
 from datetime import datetime
+from werkzeug.utils import secure_filename
+import base64
 
 # 创建logs目录（如果不存在）
 log_dir = 'logs'
@@ -33,6 +35,19 @@ app = Flask(__name__, static_url_path='')
 CORS(app)
 
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
+
+# 配置上传文件的存储位置
+UPLOAD_FOLDER = 'static/ai_pictures'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+# 确保上传目录存在
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
 def serve_index():
@@ -113,6 +128,53 @@ def chat():
             "error": str(e),
             "request_id": request_id
         }), 500
+
+# 添加新的路由处理图片上传
+@app.route('/upload-image', methods=['POST'])
+def upload_image():
+    try:
+        if 'image' not in request.files:
+            return jsonify({'success': False, 'error': 'No file part'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No selected file'}), 400
+            
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            # 添加时间戳避免文件名重复
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
+            filename = timestamp + filename
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            
+            return jsonify({
+                'success': True,
+                'filename': filename,
+                'path': f'/static/ai_pictures/{filename}'
+            })
+            
+        return jsonify({'success': False, 'error': 'File type not allowed'}), 400
+        
+    except Exception as e:
+        logger.error(f"Upload error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# 添加获取所有图片的路由
+@app.route('/get-images', methods=['GET'])
+def get_images():
+    try:
+        images = []
+        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+            if allowed_file(filename):
+                images.append({
+                    'filename': filename,
+                    'path': f'/static/ai_pictures/{filename}'
+                })
+        return jsonify({'success': True, 'images': images})
+    except Exception as e:
+        logger.error(f"Error getting images: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     logger.info(f"Server starting on http://0.0.0.0:8000")
