@@ -267,4 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
             logToConsole(`Failed to send message: ${error}`, 'error');
         }
     }
+
+    // 前端日志
+    console.log("This will show in browser console only")
 }); 

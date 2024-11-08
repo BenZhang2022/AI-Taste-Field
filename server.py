@@ -109,3 +109,10 @@ def chat():
 if __name__ == '__main__':
     logger.info(f"Server starting on http://0.0.0.0:8000")
     app.run(host='0.0.0.0', port=8000)
+
+# 服务器端日志
+import logging
+
+# Vercel 环境下的日志会被收集
+logging.info("This will be captured in Vercel logs")
+print("This will also be captured")
