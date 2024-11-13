@@ -60,7 +60,7 @@ BACKUP_FOLDER = 'static/ai_pictures_backup'
 if not os.path.exists(BACKUP_FOLDER):
     os.makedirs(BACKUP_FOLDER)
 
-app.config['BACKUP_FOLDER'] = BACKUP_FOLDER  # 可选，如果需要在其他地方通过 app.config 访问
+app.config['BACKUP_FOLDER'] = BACKUP_FOLDER  # 可选，如果需在其他地方通过 app.config 访问
 
 # 数据库配置
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///images.db'
@@ -112,6 +112,7 @@ def chat():
         
         logger.info(f"[{request_id}] New chat request received from {client_ip}")
         logger.info(f"[{request_id}] Headers: {dict(request.headers)}")
+        logger.info(f"[{request_id}] Raw data: {request.get_data()}")
         
         data = request.json
         message = data.get('message')

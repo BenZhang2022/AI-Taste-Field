@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 显示用户消息
             addMessage(message, true);
             
-            // 清空输入框 - 移到这里，在发送后立即清空
+            // 清空输入框
             messageInput.value = '';
             messageInput.style.height = 'auto';
             
@@ -147,10 +147,12 @@ document.addEventListener('DOMContentLoaded', function() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             try {
+                console.log('Sending request to:', `${API_BASE_URL}/chat`);  // 添加调试日志
                 const response = await fetch(`${API_BASE_URL}/chat`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({ message: message })
                 });
@@ -165,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     addMessage(data.response, false);
                 } else {
-                    addMessage('错误: ' + data.error, false);
+                    addMessage('错误: ' + (data.error || '未知错误'), false);
                 }
             } catch (error) {
                 console.error('Chat error:', error);
@@ -335,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
             imageGrid.appendChild(imageContainer);
         }
 
-        // 上传图片
+        // 上传片
         uploadButton.addEventListener('click', async () => {
             const files = imageUpload.files;
             if (files.length === 0) {
