@@ -140,7 +140,8 @@
     </main>
 
     <script>
-        const API_BASE_URL = 'https://0371-107-151-158-7.ngrok-free.app';
+        // 动态获取当前域名作为 API 基础地址
+        const API_BASE_URL = window.location.origin;
     </script>
     <script src="script.js"></script>
 
