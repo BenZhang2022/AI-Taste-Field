@@ -20,6 +20,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (sectionId === '#gallery') {
                 initCarousel();
             }
+            // 如果切换到 ComfyUI 页面，刷新 iframe
+            if (sectionId === '#comfyui') {
+                const iframe = document.getElementById('comfyuiFrame');
+                iframe.src = iframe.src;
+            }
         }
 
         // 更新导航栏激活状态

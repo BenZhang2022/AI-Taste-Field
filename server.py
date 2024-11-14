@@ -1,5 +1,5 @@
 #Here is the version of 20241107 lidong
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 import requests
 import os
@@ -366,6 +366,51 @@ def cleanup_images():
         db.session.rollback()
         logger.error(f"清理记录时出错: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# 修改 ComfyUI 代理路由
+@app.route('/comfui/<path:path>', methods=['GET', 'POST', 'OPTIONS'])
+def proxy_comfyui(path):
+    try:
+        target_url = f'http://localhost:8188/{path}'
+        logger.info(f"Proxying request to: {target_url}")
+        
+        try:
+            # 测试 ComfyUI 服务是否可用
+            requests.get('http://localhost:8188/', timeout=2)
+        except requests.exceptions.ConnectionError:
+            logger.error("ComfyUI service is not available")
+            return jsonify({'error': 'ComfyUI service is not running'}), 503
+        
+        # 转发请求
+        if request.method == 'GET':
+            response = requests.get(target_url)
+        elif request.method == 'POST':
+            response = requests.post(target_url, json=request.json)
+        else:
+            return '', 204
+            
+        return response.content, response.status_code, response.headers.items()
+        
+    except Exception as e:
+        logger.error(f"Error proxying ComfyUI request: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# 修改 ComfyUI 根路径代理
+@app.route('/comfui/', methods=['GET', 'POST', 'OPTIONS'])
+def proxy_comfyui_root():
+    try:
+        logger.info("Proxying request to ComfyUI root")
+        
+        try:
+            response = requests.get('http://localhost:8188/', timeout=2)
+            return response.content, response.status_code, response.headers.items()
+        except requests.exceptions.ConnectionError:
+            logger.error("ComfyUI service is not available")
+            return jsonify({'error': 'ComfyUI service is not running'}), 503
+            
+    except Exception as e:
+        logger.error(f"Error proxying ComfyUI root: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     logger.info(f"Server starting on http://0.0.0.0:8000")
