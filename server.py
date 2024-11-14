@@ -215,7 +215,7 @@ def upload_image():
             file_size = os.path.getsize(filepath)
             mime_type = file.content_type
             
-            # 获取完整的URL路径
+            # 获取完整的URL路
             base_url = request.url_root.rstrip('/')
             file_url = f'{base_url}/static/ai_pictures/{filename}'
             
@@ -368,28 +368,48 @@ def cleanup_images():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # 修改 ComfyUI 代理路由
-@app.route('/comfui/<path:path>', methods=['GET', 'POST', 'OPTIONS'])
+@app.route('/comfui/<path:path>', methods=['GET', 'POST', 'OPTIONS', 'WS', 'WSS'])
 def proxy_comfyui(path):
     try:
         target_url = f'http://localhost:8188/{path}'
-        logger.info(f"Proxying request to: {target_url}")
         
-        try:
-            # 测试 ComfyUI 服务是否可用
-            requests.get('http://localhost:8188/', timeout=2)
-        except requests.exceptions.ConnectionError:
-            logger.error("ComfyUI service is not available")
-            return jsonify({'error': 'ComfyUI service is not running'}), 503
+        # 转发所有请求头，但修改 Host 和 Origin
+        headers = {key: value for (key, value) in request.headers if key.lower() not in ['host', 'origin']}
+        headers['Host'] = 'localhost:8188'
+        headers['Origin'] = 'http://localhost:8188'
         
-        # 转发请求
+        # 处理 WebSocket 升级请求
+        if request.headers.get('Upgrade') == 'websocket':
+            return Response(
+                status=101,
+                headers={
+                    'Upgrade': 'websocket',
+                    'Connection': 'Upgrade',
+                    'Sec-WebSocket-Accept': request.headers.get('Sec-WebSocket-Key', '')
+                }
+            )
+        
+        # 常规请求处理
         if request.method == 'GET':
-            response = requests.get(target_url)
+            params = request.args.to_dict()
+            response = requests.get(target_url, headers=headers, params=params, stream=True)
         elif request.method == 'POST':
-            response = requests.post(target_url, json=request.json)
+            data = request.get_data()
+            response = requests.post(target_url, headers=headers, data=data, stream=True)
         else:
             return '', 204
             
-        return response.content, response.status_code, response.headers.items()
+        # 转发响应，但修改 CORS 头
+        resp_headers = dict(response.headers)
+        resp_headers['Access-Control-Allow-Origin'] = '*'
+        resp_headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        resp_headers['Access-Control-Allow-Headers'] = '*'
+        
+        return Response(
+            response.raw.read(),
+            status=response.status_code,
+            headers=resp_headers
+        )
         
     except Exception as e:
         logger.error(f"Error proxying ComfyUI request: {str(e)}")
@@ -399,13 +419,21 @@ def proxy_comfyui(path):
 @app.route('/comfui/', methods=['GET', 'POST', 'OPTIONS'])
 def proxy_comfyui_root():
     try:
-        logger.info("Proxying request to ComfyUI root")
+        headers = {
+            'Host': 'localhost:8188',
+            'Origin': 'http://localhost:8188'
+        }
         
         try:
-            response = requests.get('http://localhost:8188/', timeout=2)
-            return response.content, response.status_code, response.headers.items()
+            params = request.args.to_dict()
+            response = requests.get('http://localhost:8188/', headers=headers, params=params, timeout=2)
+            resp_headers = dict(response.headers)
+            resp_headers['Access-Control-Allow-Origin'] = '*'
+            resp_headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            resp_headers['Access-Control-Allow-Headers'] = '*'
+            
+            return response.content, response.status_code, resp_headers.items()
         except requests.exceptions.ConnectionError:
-            logger.error("ComfyUI service is not available")
             return jsonify({'error': 'ComfyUI service is not running'}), 503
             
     except Exception as e:

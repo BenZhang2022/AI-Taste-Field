@@ -22,8 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             // 如果切换到 ComfyUI 页面，刷新 iframe
             if (sectionId === '#comfyui') {
-                const iframe = document.getElementById('comfyuiFrame');
-                iframe.src = iframe.src;
+                updateComfyUIFrameSrc();
             }
         }
 
@@ -476,4 +475,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 在现有的 DOMContentLoaded 事件监听器中调用
     initAIGallery();
+
+    // 在 initAIGallery 函数中添加
+    function updateComfyUIFrameSrc() {
+        const iframe = document.getElementById('comfyuiFrame');
+        if (iframe) {
+            const baseUrl = window.location.origin;
+            iframe.src = `${baseUrl}/comfui/`;
+            console.log('Setting ComfyUI iframe src to:', iframe.src);
+        }
+    }
+
+    // 在页面加载和切换到 ComfyUI 标签时调用
+    document.addEventListener('DOMContentLoaded', updateComfyUIFrameSrc);
 }); 
