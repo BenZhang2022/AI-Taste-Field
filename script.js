@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 initCarousel();
             }
             // 如果切换到 ComfyUI 页面，刷新 iframe
-            if (sectionId === '#comfyui') {
+            if (sectionId === '#genphoto') {
                 updateComfyUIFrameSrc();
             }
         }
@@ -465,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('清理出错，请重试');
             } finally {
                 cleanupButton.classList.remove('loading');
-                cleanupButton.textContent = '清理无效图片';
+                cleanupButton.textContent = '清理无效图';
             }
         }
 
@@ -486,6 +486,90 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 在页面加载和切换到 ComfyUI 标签时调用
+    // 在页面加和切换到 ComfyUI 标签时调用
     document.addEventListener('DOMContentLoaded', updateComfyUIFrameSrc);
+
+    function initImageGenerators() {
+        console.log('Initializing image generators...');
+        
+        // ComfyUI 模态框
+        const comfyModal = document.getElementById('comfyuiModal');
+        const comfyBtn = document.getElementById('openComfyUI');
+        const comfyClose = document.querySelector('.comfyui-close');
+        const comfyFrame = document.getElementById('comfyuiFrame');
+        let comfyLoaded = false;
+
+        // OmniGen 模态框
+        const omniModal = document.getElementById('omnigenModal');
+        const omniBtn = document.getElementById('openOmniGen');
+        const omniClose = document.querySelector('.omnigen-close');
+        const omniFrame = document.getElementById('omnigenFrame');
+        let omniLoaded = false;
+
+        // ComfyUI 按钮点击事件
+        comfyBtn.onclick = function() {
+            console.log('ComfyUI button clicked');
+            omniModal.style.display = "none";
+            comfyModal.style.display = "block";
+            if (!comfyLoaded) {
+                comfyFrame.src = `${window.location.origin}/comfui/`;
+                comfyLoaded = true;
+                console.log('ComfyUI iframe loaded:', comfyFrame.src);
+            }
+        }
+
+        // OmniGen 按钮点击事件
+        omniBtn.onclick = function() {
+            console.log('OmniGen button clicked');
+            comfyModal.style.display = "none";
+            omniModal.style.display = "block";
+            if (!omniLoaded) {
+                omniFrame.src = `${window.location.origin}/omnigen/`;
+                omniLoaded = true;
+                console.log('OmniGen iframe loaded:', omniFrame.src);
+            }
+        }
+
+        // 关闭按钮事件
+        comfyClose.onclick = function() {
+            comfyModal.style.display = "none";
+        }
+
+        omniClose.onclick = function() {
+            omniModal.style.display = "none";
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            if (event.target == comfyModal) {
+                comfyModal.style.display = "none";
+            }
+            if (event.target == omniModal) {
+                omniModal.style.display = "none";
+            }
+        }
+
+        // ESC 键关闭模框
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (comfyModal.style.display === "block") {
+                    comfyModal.style.display = "none";
+                }
+                if (omniModal.style.display === "block") {
+                    omniModal.style.display = "none";
+                }
+            }
+        });
+    }
+
+    // 在 DOMContentLoaded 事件监听器中调用
+    document.addEventListener('DOMContentLoaded', function() {
+        // ... 其他初始化代码 ...
+        initImageGenerators();
+    });
+
+    // 初始化所有功能
+    initCarousel();
+    initAIGallery();
+    initImageGenerators();  // 只在这里调用一次
 }); 

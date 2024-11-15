@@ -10,14 +10,14 @@
 <body>
     <nav class="navbar">
         <div class="nav-content">
-            <div class="logo">我的主页</div>
+            <div class="logo">AI的各种尝试</div>
             <ul class="nav-links">
                 <li><a href="#home" class="active" data-section="home">首页</a></li>
-                <li><a href="#about" data-section="about">关于我</a></li>
-                <li><a href="#gallery" data-section="gallery">相册</a></li>
-                <li><a href="#contact" data-section="contact">联系我</a></li>
+                <li><a href="#about" data-section="about">生音试验区</a></li>
+                <li><a href="#genphoto" data-section="genphoto">生图试验区</a></li>
                 <li><a href="#ai-gallery">AI图片</a></li>
-                <li><a href="#comfyui" data-section="comfyui">ComfyUI</a></li>
+                <li><a href="#gallery" data-section="gallery">生活展示区</a></li>
+                <li><a href="#contact" data-section="contact">联系我</a></li>
             </ul>
         </div>
     </nav>
@@ -27,7 +27,7 @@
         <section id="home" class="section active">
             <div class="hero">
                 <h1>欢迎来到我的个人空间</h1>
-                <p>这里记录着我的生活点滴</p>
+                <p>当前为Ollama 量化Qwen2.5 7B 的LLM</p>
             </div>
             <div class="content-wrapper">
                 <div class="chat-container">
@@ -54,7 +54,7 @@
         <!-- 关于我部分 -->
         <section id="about" class="section">
             <div class="content-wrapper">
-                <h2>关于我</h2>
+                <h2>生音试验区</h2>
                 <div class="about-container">
                     <div class="about-image">
                         <img src="static/images/photo5.jpeg" alt="个人照片">
@@ -63,7 +63,7 @@
                         <p>王波啊，我的波波，我最最亲爱的波波， 现在我终于可以给你打电话了。我和你说句掏心窝子的话，这几年，我真他妈太难啦。你每天爬山，喝酒，打羽毛球。 我每天干啥？ 一会儿挨枪子儿，一会儿被人抓监狱的。 现在老子，川建国，又回来啦。</p>
                         <button id="playAudio" class="audio-button">
                             <img src="static/images/photo4.jpeg" alt="Trump" class="button-icon">
-                            <span class="button-text">Trump's Friend</span>
+                            <span class="button-text">用Trump 的声音说上面的话-F5-TTS</span>
                             <audio id="myAudio" src="static/audio/message.wav"></audio>
                         </button>
                     </div>
@@ -74,7 +74,7 @@
         <!-- 相册部分 -->
         <section id="gallery" class="section">
             <div class="content-wrapper">
-                <h2>我的相册</h2>
+                <h2>生活展示区</h2>
                 <div class="carousel">
                     <div class="carousel-inner">
                         <img src="static/images/photo1.jpeg" class="active" alt="照片1">
@@ -124,16 +124,38 @@
         </div>
 
         <!-- ComfyUI 部分 -->
-        <section id="comfyui" class="section">
+        <section id="genphoto" class="section">
             <div class="content-wrapper">
-                <h2>ComfyUI 工作区</h2>
-                <div class="comfyui-container">
-                    <iframe 
-                        id="comfyuiFrame"
-                        src="/comfui/"
-                        frameborder="0"
-                        allowfullscreen>
-                    </iframe>
+                <h2>生图试验区</h2>
+                <div class="comfy-controls">
+                    <button id="openComfyUI" class="comfy-button">ComfyUI</button>
+                    <button id="openOmniGen" class="comfy-button">Gradio-OmniGen</button>
+                </div>
+                <!-- ComfyUI 模态框 -->
+                <div id="comfyuiModal" class="comfyui-modal">
+                    <div class="comfyui-modal-content">
+                        <span class="comfyui-close">&times;</span>
+                        <div class="comfyui-container">
+                            <iframe 
+                                id="comfyuiFrame"
+                                frameborder="0"
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+                <!-- OmniGen 模态框 -->
+                <div id="omnigenModal" class="comfyui-modal">
+                    <div class="comfyui-modal-content">
+                        <span class="omnigen-close">&times;</span>
+                        <div class="comfyui-container">
+                            <iframe 
+                                id="omnigenFrame"
+                                frameborder="0"
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

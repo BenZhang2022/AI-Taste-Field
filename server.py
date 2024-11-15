@@ -342,7 +342,7 @@ def cleanup_images():
     try:
         logger.info("开始清理数据库中的无效图片记录")
         
-        # 获取所有图片记录
+        # 获取所有图片录
         all_images = Image.query.all()
         removed_count = 0
         
@@ -438,6 +438,79 @@ def proxy_comfyui_root():
             
     except Exception as e:
         logger.error(f"Error proxying ComfyUI root: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# 修改 OmniGen 代理路由
+@app.route('/omnigen/<path:path>', methods=['GET', 'POST', 'OPTIONS', 'WS', 'WSS'])
+def proxy_omnigen(path):
+    try:
+        target_url = f'http://localhost:7860/{path}'
+        
+        # 转发所有请求头，但修改 Host 和 Origin
+        headers = {key: value for (key, value) in request.headers if key.lower() not in ['host', 'origin']}
+        headers['Host'] = 'localhost:7860'
+        headers['Origin'] = 'http://localhost:7860'
+        
+        # 处理 WebSocket 升级请求
+        if request.headers.get('Upgrade') == 'websocket':
+            return Response(
+                status=101,
+                headers={
+                    'Upgrade': 'websocket',
+                    'Connection': 'Upgrade',
+                    'Sec-WebSocket-Accept': request.headers.get('Sec-WebSocket-Key', '')
+                }
+            )
+        
+        # 常规请求处理
+        if request.method == 'GET':
+            params = request.args.to_dict()
+            response = requests.get(target_url, headers=headers, params=params, stream=True)
+        elif request.method == 'POST':
+            data = request.get_data()
+            response = requests.post(target_url, headers=headers, data=data, stream=True)
+        else:
+            return '', 204
+            
+        # 转发响应，但修改 CORS 头
+        resp_headers = dict(response.headers)
+        resp_headers['Access-Control-Allow-Origin'] = '*'
+        resp_headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        resp_headers['Access-Control-Allow-Headers'] = '*'
+        
+        return Response(
+            response.raw.read(),
+            status=response.status_code,
+            headers=resp_headers
+        )
+        
+    except Exception as e:
+        logger.error(f"Error proxying OmniGen request: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# 修改 OmniGen 根路径代理
+@app.route('/omnigen/', methods=['GET', 'POST', 'OPTIONS'])
+def proxy_omnigen_root():
+    try:
+        headers = {
+            'Host': 'localhost:7860',
+            'Origin': 'http://localhost:7860'
+        }
+        
+        try:
+            params = request.args.to_dict()
+            response = requests.get('http://localhost:7860/', headers=headers, params=params, timeout=2)
+            resp_headers = dict(response.headers)
+            resp_headers['Access-Control-Allow-Origin'] = '*'
+            resp_headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            resp_headers['Access-Control-Allow-Headers'] = '*'
+            
+            return response.content, response.status_code, resp_headers.items()
+        except requests.exceptions.ConnectionError:
+            return jsonify({'error': 'OmniGen service is not running'}), 503
+            
+    except Exception as e:
+        logger.error(f"Error proxying OmniGen root: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
