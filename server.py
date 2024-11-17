@@ -76,6 +76,7 @@ class Image(db.Model):
     upload_date = db.Column(db.DateTime, default=datetime.utcnow)
     file_size = db.Column(db.Integer)  # 文件大小（字节）
     mime_type = db.Column(db.String(100))  # 文件类型
+    content = db.Column(db.LargeBinary)  # 添加这个字段来存储图片内容
 
 # 在应用启动时创建数据库表
 with app.app_context():
@@ -203,44 +204,44 @@ def upload_image():
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
             filename = timestamp + secure_filename(file.filename)
             
-            # 确保目录存在
+            # 确保两个目录都存在
             os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            os.makedirs(BACKUP_FOLDER, exist_ok=True)
             
-            # 保存文件
+            # 保存到主目录
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            logger.info(f"文件已保存到: {filepath}")
+            logger.info(f"文件已保存到主目录: {filepath}")
+            
+            # ��时保存到备份目录
+            backup_path = os.path.join(BACKUP_FOLDER, filename)
+            with open(filepath, 'rb') as src:
+                with open(backup_path, 'wb') as dst:
+                    dst.write(src.read())
+            logger.info(f"文件已保存到备份目录: {backup_path}")
             
             # 获取文件信息
             file_size = os.path.getsize(filepath)
             mime_type = file.content_type
             
-            # 获取完整的URL路
-            base_url = request.url_root.rstrip('/')
-            file_url = f'{base_url}/static/ai_pictures/{filename}'
-            
-            # 验证文件是否成功保存
-            if not os.path.exists(filepath):
-                logger.error(f"文件保存失败: {filepath}")
-                return jsonify({'success': False, 'error': 'File save failed'}), 500
-                
-            logger.info(f"文件URL: {file_url}")
-            
-            # 保存到数据库
-            new_image = Image(
-                filename=filename,
-                path=f'/static/ai_pictures/{filename}',
-                original_filename=file.filename,
-                file_size=file_size,
-                mime_type=mime_type
-            )
+            # 保存图片内容
+            with open(filepath, 'rb') as f:
+                file_content = f.read()
+                new_image = Image(
+                    filename=filename,
+                    path=f'/static/ai_pictures/{filename}',
+                    original_filename=file.filename,
+                    file_size=file_size,
+                    mime_type=mime_type,
+                    content=file_content  # 保存图片内容
+                )
             db.session.add(new_image)
             db.session.commit()
             
             return jsonify({
                 'success': True,
                 'filename': filename,
-                'path': file_url,
+                'path': f'/static/ai_pictures/{filename}',
                 'original_filename': file.filename,
                 'upload_date': new_image.upload_date.isoformat(),
                 'file_size': file_size,
@@ -263,6 +264,8 @@ def get_images():
         base_url = request.url_root.rstrip('/')
         
         image_list = []
+        logger.info(f"开始获取图片列表，共 {len(images)} 张图片")  # 只记录一次总数
+        
         for img in images:
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], img.filename)
             if os.path.exists(file_path):
@@ -274,9 +277,8 @@ def get_images():
                     'file_size': img.file_size,
                     'mime_type': img.mime_type
                 })
-                logger.info(f"找到图片: {file_path}")
             else:
-                logger.warning(f"图片文件不存在: {file_path}")
+                logger.warning(f"图片文件不存在: {file_path}")  # 只记录异常情况
         
         return jsonify({
             'success': True,
@@ -292,41 +294,50 @@ def refresh_images():
     try:
         logger.info("开始刷新图片")
         
-        # 确保目录存在
+        # 1. 确保目录存在
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        os.makedirs(BACKUP_FOLDER, exist_ok=True)
         
-        # 清空目标目录
-        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            if os.path.isfile(file_path):
-                logger.info(f"删除文件: {file_path}")
-                os.remove(file_path)
+        # 2. 检查当前目录中的图片数量
+        current_files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) 
+                        if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], f))]
+        logger.info(f"当前目录中有 {len(current_files)} 张图片")
         
-        # 从数据库获取最新的10张图片
+        # 3. 从数据库获取最新的10张图片记录
         images = Image.query.order_by(Image.upload_date.desc()).limit(10).all()
-        logger.info(f"从数据库获取了 {len(images)} 张图片")
+        logger.info(f"从数据库获取了 {len(images)} 张图片记录")
         
         success_count = 0
         for img in images:
             try:
-                # 从备份目录复制文件
                 backup_path = os.path.join(BACKUP_FOLDER, img.filename)
                 target_path = os.path.join(app.config['UPLOAD_FOLDER'], img.filename)
                 
+                # 如果备份文件不存在，尝试从数据库获取并保存
+                if not os.path.exists(backup_path):
+                    # 这里需要实现从数据库获取图片内容的逻辑
+                    # 假设图片内容存储在数据库的 content 字段
+                    if hasattr(img, 'content') and img.content:
+                        with open(backup_path, 'wb') as backup_file:
+                            backup_file.write(img.content)
+                        logger.info(f"从数据库下载图片到备份目录: {img.filename}")
+                
+                # 如果备份文件存在，复制到主目录
                 if os.path.exists(backup_path):
-                    logger.info(f"复制文件 {img.filename} 从备份到主目录")
-                    with open(backup_path, 'rb') as src:
-                        with open(target_path, 'wb') as dst:
-                            dst.write(src.read())
-                    success_count += 1
+                    if not os.path.exists(target_path):
+                        with open(backup_path, 'rb') as src:
+                            with open(target_path, 'wb') as dst:
+                                dst.write(src.read())
+                        success_count += 1
+                        logger.info(f"已复制文件到主目录: {img.filename}")
                 else:
-                    logger.warning(f"备份文件不存在: {backup_path}")
+                    logger.warning(f"无法获取图片文件: {img.filename}")
                     
             except Exception as e:
-                logger.error(f"复制文件 {img.filename} 时出错: {str(e)}")
+                logger.error(f"处理文件 {img.filename} 时出错: {str(e)}")
                 continue
         
-        logger.info(f"成功刷新了 {success_count} 张图片")
+        logger.info(f"成功补充了 {success_count} 张图片")
         return jsonify({
             'success': True,
             'message': f'Successfully refreshed {success_count} images'
@@ -342,13 +353,26 @@ def cleanup_images():
     try:
         logger.info("开始清理数据库中的无效图片记录")
         
-        # 获取所有图片录
+        # 获取所有图片记录
         all_images = Image.query.all()
         removed_count = 0
         
         for img in all_images:
             # 检查备份文件是否存在
             backup_path = os.path.join(BACKUP_FOLDER, img.filename)
+            
+            # 如果备份文件不存在，但数据库中有内容，尝试恢复
+            if not os.path.exists(backup_path) and img.content:
+                try:
+                    # 从数据库恢复到备份目录
+                    with open(backup_path, 'wb') as backup_file:
+                        backup_file.write(img.content)
+                    logger.info(f"从数据库恢复文件到备份目录: {img.filename}")
+                    continue  # 恢复成功，跳过删除
+                except Exception as e:
+                    logger.error(f"恢复文件失败: {str(e)}")
+            
+            # 如果备份文件不存在且无法从数据库恢复，删除记录
             if not os.path.exists(backup_path):
                 logger.info(f"删除无效记录: {img.filename}")
                 db.session.delete(img)
@@ -512,6 +536,14 @@ def proxy_omnigen_root():
     except Exception as e:
         logger.error(f"Error proxying OmniGen root: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/static/comfyui.html')
+def serve_comfyui_page():
+    return send_from_directory('static', 'comfyui.html')
+
+@app.route('/static/omnigen.html')
+def serve_omnigen_page():
+    return send_from_directory('static', 'omnigen.html')
 
 if __name__ == '__main__':
     logger.info(f"Server starting on http://0.0.0.0:8000")

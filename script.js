@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function showImage(index) {
-            console.log('切换到图片:', index);
+            console.log('换到图片:', index);
             images.forEach(img => img.classList.remove('active'));
             images[index].classList.add('active');
         }
@@ -279,12 +279,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 在 DOMContentLoaded 事件监听器中添加
     function initAIGallery() {
-        console.log('Current API_BASE_URL:', API_BASE_URL);
+        console.log('Initializing AI Gallery');
         const imageUpload = document.getElementById('imageUpload');
         const uploadButton = document.getElementById('uploadButton');
         const imageGrid = document.querySelector('.ai-image-grid');
         const refreshButton = document.getElementById('refreshButton');
         const cleanupButton = document.getElementById('cleanupButton');
+
+        // 添加一个标志来追踪是否已经加载过图片
+        let imagesLoaded = false;
+
+        // 监听 AI 图片部分的可见性变化
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !imagesLoaded) {
+                    // 只在第一次显示时加载图片
+                    loadExistingImages();
+                    imagesLoaded = true;
+                }
+            });
+        });
+
+        // 观察 AI 图片部分
+        const aiGallery = document.getElementById('ai-gallery');
+        if (aiGallery) {
+            observer.observe(aiGallery);
+        }
 
         // 加载已有图片
         async function loadExistingImages() {
@@ -293,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 if (data.success) {
-                    imageGrid.innerHTML = ''; // 清空现有内容
+                    imageGrid.innerHTML = ''; // 清现有内容
                     data.images.forEach(imageData => {
                         addImageToGrid(imageData);
                     });
@@ -341,7 +361,7 @@ document.addEventListener('DOMContentLoaded', function() {
             imageGrid.appendChild(imageContainer);
         }
 
-        // 上传片
+        // 上传图片
         uploadButton.addEventListener('click', async () => {
             const files = imageUpload.files;
             if (files.length === 0) {
@@ -492,84 +512,22 @@ document.addEventListener('DOMContentLoaded', function() {
     function initImageGenerators() {
         console.log('Initializing image generators...');
         
-        // ComfyUI 模态框
-        const comfyModal = document.getElementById('comfyuiModal');
         const comfyBtn = document.getElementById('openComfyUI');
-        const comfyClose = document.querySelector('.comfyui-close');
-        const comfyFrame = document.getElementById('comfyuiFrame');
-        let comfyLoaded = false;
-
-        // OmniGen 模态框
-        const omniModal = document.getElementById('omnigenModal');
         const omniBtn = document.getElementById('openOmniGen');
-        const omniClose = document.querySelector('.omnigen-close');
-        const omniFrame = document.getElementById('omnigenFrame');
-        let omniLoaded = false;
 
         // ComfyUI 按钮点击事件
         comfyBtn.onclick = function() {
             console.log('ComfyUI button clicked');
-            omniModal.style.display = "none";
-            comfyModal.style.display = "block";
-            if (!comfyLoaded) {
-                comfyFrame.src = `${window.location.origin}/comfui/`;
-                comfyLoaded = true;
-                console.log('ComfyUI iframe loaded:', comfyFrame.src);
-            }
+            // 使用完整的 URL 路径
+            window.open(`${window.location.origin}/static/comfyui.html`, '_blank');
         }
 
         // OmniGen 按钮点击事件
         omniBtn.onclick = function() {
             console.log('OmniGen button clicked');
-            comfyModal.style.display = "none";
-            omniModal.style.display = "block";
-            if (!omniLoaded) {
-                omniFrame.src = `${window.location.origin}/omnigen/`;
-                omniLoaded = true;
-                console.log('OmniGen iframe loaded:', omniFrame.src);
-            }
+            // 使用完整的 URL 路径
+            window.open(`${window.location.origin}/static/omnigen.html`, '_blank');
         }
-
-        // 关闭按钮事件
-        comfyClose.onclick = function() {
-            comfyModal.style.display = "none";
-        }
-
-        omniClose.onclick = function() {
-            omniModal.style.display = "none";
-        }
-
-        // 点击模态框外部关闭
-        window.onclick = function(event) {
-            if (event.target == comfyModal) {
-                comfyModal.style.display = "none";
-            }
-            if (event.target == omniModal) {
-                omniModal.style.display = "none";
-            }
-        }
-
-        // ESC 键关闭模框
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                if (comfyModal.style.display === "block") {
-                    comfyModal.style.display = "none";
-                }
-                if (omniModal.style.display === "block") {
-                    omniModal.style.display = "none";
-                }
-            }
-        });
     }
 
-    // 在 DOMContentLoaded 事件监听器中调用
-    document.addEventListener('DOMContentLoaded', function() {
-        // ... 其他初始化代码 ...
-        initImageGenerators();
-    });
-
-    // 初始化所有功能
-    initCarousel();
-    initAIGallery();
-    initImageGenerators();  // 只在这里调用一次
 }); 

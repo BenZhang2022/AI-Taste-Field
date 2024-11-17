@@ -680,4 +680,59 @@ main {
     height: calc(100% - 20px);
     margin: 10px 0;
 }
+
+/* 语音转换部分的样式 */
+.voice-input-container {
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.voice-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    margin-bottom: 10px;
+    font-family: inherit;
+}
+
+.voice-input:focus {
+    outline: none;
+    border-color: #007AFF;
+    box-shadow: 0 0 5px rgba(0, 122, 255, 0.3);
+}
+
+.convert-button {
+    padding: 10px 20px;
+    background: #007AFF;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.convert-button:hover {
+    background: #0056b3;
+    transform: translateY(-2px);
+}
+
+.convert-button:active {
+    transform: translateY(0);
+}
+
+/* 添加引用文本的样式 */
+.example-text {
+    margin: 10px 0;
+    padding: 15px 20px;
+    background: #f5f5f5;
+    border-left: 4px solid #007AFF;
+    border-radius: 4px;
+    font-style: italic;
+    color: #333;
+}
   

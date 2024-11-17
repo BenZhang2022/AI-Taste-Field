@@ -2,7 +2,6 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
-venv/
 .vscode/
 # 忽略日志目录
 logs/

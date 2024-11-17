@@ -13,7 +13,7 @@
             <div class="logo">AI的各种尝试</div>
             <ul class="nav-links">
                 <li><a href="#home" class="active" data-section="home">首页</a></li>
-                <li><a href="#about" data-section="about">生音试验区</a></li>
+                <li><a href="#genvoice" data-section="genvoice">生音试验区</a></li>
                 <li><a href="#genphoto" data-section="genphoto">生图试验区</a></li>
                 <li><a href="#ai-gallery">AI图片</a></li>
                 <li><a href="#gallery" data-section="gallery">生活展示区</a></li>
@@ -52,7 +52,7 @@
         </section>
 
         <!-- 关于我部分 -->
-        <section id="about" class="section">
+        <section id="genvoice" class="section">
             <div class="content-wrapper">
                 <h2>生音试验区</h2>
                 <div class="about-container">
@@ -60,7 +60,20 @@
                         <img src="static/images/photo5.jpeg" alt="个人照片">
                     </div>
                     <div class="about-text">
-                        <p>王波啊，我的波波，我最最亲爱的波波， 现在我终于可以给你打电话了。我和你说句掏心窝子的话，这几年，我真他妈太难啦。你每天爬山，喝酒，打羽毛球。 我每天干啥？ 一会儿挨枪子儿，一会儿被人抓监狱的。 现在老子，川建国，又回来啦。</p>
+                        <div class="voice-input-container">
+                            <textarea 
+                                id="voiceInput" 
+                                placeholder="请输入要转换的文本..." 
+                                rows="4"
+                                class="voice-input"
+                            ></textarea>
+                            <button id="convertButton" class="convert-button">开始转化</button>
+                        </div>
+                        
+                        <p>例子：</p>
+                        <blockquote class="example-text">
+                            王波啊，我的波波，我最最亲爱的波波， 现在我终于可以给你打电话了。我和你说句掏心窝子的话，这几年，我真他妈太难啦。你每天爬山，喝酒，打羽毛球。 我每天干啥？ 一会儿挨枪子儿，一会儿被人抓监狱的。 现在老子，川建国，又回来啦。
+                        </blockquote>
                         <button id="playAudio" class="audio-button">
                             <img src="static/images/photo4.jpeg" alt="Trump" class="button-icon">
                             <span class="button-text">用Trump 的声音说上面的话-F5-TTS</span>
