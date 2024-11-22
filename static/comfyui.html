@@ -15,9 +15,61 @@
             height: 100%;
             border: none;
         }
+        .upload-latest-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .upload-latest-button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        .upload-latest-button:active {
+            transform: translateY(0);
+        }
     </style>
+    <script>
+        async function uploadLatestImage() {
+            try {
+                const response = await fetch('/upload-latest-comfyui', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('最新图片上传成功！');
+                    if (window.opener) {
+                        window.opener.location.href = '/#ai-gallery';
+                        setTimeout(() => {
+                            const aiGallery = window.opener.document.querySelector('.ai-image-grid');
+                            if (aiGallery) {
+                                aiGallery.innerHTML = '';
+                                window.opener.loadExistingImages();
+                            }
+                        }, 1000);
+                    }
+                    window.close();
+                } else {
+                    alert('上传失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('上传出错，请重试');
+            }
+        }
+    </script>
 </head>
 <body>
+    <button class="upload-latest-button" onclick="uploadLatestImage()">上传最新图片</button>
     <iframe src="/comfui/" frameborder="0" allowfullscreen></iframe>
 </body>
 </html> 

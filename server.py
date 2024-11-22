@@ -9,6 +9,8 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 import base64
 from flask_sqlalchemy import SQLAlchemy
+import glob
+import os.path
 
 # 创建logs目录（如果不存在）
 log_dir = 'logs'
@@ -213,7 +215,7 @@ def upload_image():
             file.save(filepath)
             logger.info(f"文件已保存到主目录: {filepath}")
             
-            # ��时保存到备份目录
+            # 时保存到备份目录
             backup_path = os.path.join(BACKUP_FOLDER, filename)
             with open(filepath, 'rb') as src:
                 with open(backup_path, 'wb') as dst:
@@ -264,8 +266,6 @@ def get_images():
         base_url = request.url_root.rstrip('/')
         
         image_list = []
-        logger.info(f"开始获取图片列表，共 {len(images)} 张图片")  # 只记录一次总数
-        
         for img in images:
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], img.filename)
             if os.path.exists(file_path):
@@ -277,8 +277,6 @@ def get_images():
                     'file_size': img.file_size,
                     'mime_type': img.mime_type
                 })
-            else:
-                logger.warning(f"图片文件不存在: {file_path}")  # 只记录异常情况
         
         return jsonify({
             'success': True,
@@ -544,6 +542,148 @@ def serve_comfyui_page():
 @app.route('/static/omnigen.html')
 def serve_omnigen_page():
     return send_from_directory('static', 'omnigen.html')
+
+@app.route('/upload-latest-comfyui', methods=['POST'])
+def upload_latest_comfyui():
+    try:
+        # ComfyUI 输出目录
+        output_dir = '/Users/jianbinzhang/ComfyUI/output'
+        
+        # 获取目录中最新的图片
+        files = glob.glob(os.path.join(output_dir, '*.*'))
+        if not files:
+            return jsonify({'success': False, 'error': 'No images found in output directory'}), 404
+            
+        latest_file = max(files, key=os.path.getctime)
+        filename = os.path.basename(latest_file)
+        
+        # 确保文件是图片
+        if not allowed_file(filename):
+            return jsonify({'success': False, 'error': 'Latest file is not an image'}), 400
+            
+        # 生成新文件名
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
+        new_filename = timestamp + secure_filename(filename)
+        
+        # 保存到主目录和备份目录
+        with open(latest_file, 'rb') as f:
+            file_content = f.read()
+            
+            # 保存到主目录
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
+            with open(filepath, 'wb') as dst:
+                dst.write(file_content)
+                
+            # 保存到备份目录
+            backup_path = os.path.join(BACKUP_FOLDER, new_filename)
+            with open(backup_path, 'wb') as dst:
+                dst.write(file_content)
+        
+        # 获取文件信息
+        file_size = os.path.getsize(filepath)
+        mime_type = 'image/' + filename.rsplit('.', 1)[1].lower()
+        
+        # 保存到数据库
+        new_image = Image(
+            filename=new_filename,
+            path=f'/static/ai_pictures/{new_filename}',
+            original_filename=filename,
+            file_size=file_size,
+            mime_type=mime_type,
+            content=file_content
+        )
+        db.session.add(new_image)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'filename': new_filename,
+            'path': f'/static/ai_pictures/{new_filename}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error uploading latest ComfyUI image: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# 添加 OpenWebUI 代理路由
+@app.route('/webui/<path:path>', methods=['GET', 'POST', 'OPTIONS', 'WS', 'WSS'])
+def proxy_webui(path):
+    try:
+        container_ip = "10.88.0.2"  # podman 容器的 IP
+        target_url = f'http://{container_ip}:3000/{path}'
+        
+        # 转发所有请求头，但修改 Host 和 Origin
+        headers = {key: value for (key, value) in request.headers if key.lower() not in ['host', 'origin']}
+        headers['Host'] = f'{container_ip}:3000'
+        headers['Origin'] = f'http://{container_ip}:3000'
+        
+        # 处理 WebSocket 升级请求
+        if request.headers.get('Upgrade') == 'websocket':
+            return Response(
+                status=101,
+                headers={
+                    'Upgrade': 'websocket',
+                    'Connection': 'Upgrade',
+                    'Sec-WebSocket-Accept': request.headers.get('Sec-WebSocket-Key', '')
+                }
+            )
+        
+        # 常规请求处理
+        if request.method == 'GET':
+            params = request.args.to_dict()
+            response = requests.get(target_url, headers=headers, params=params, stream=True)
+        elif request.method == 'POST':
+            data = request.get_data()
+            response = requests.post(target_url, headers=headers, data=data, stream=True)
+        else:
+            return '', 204
+            
+        # 转发响应，但修改 CORS 头
+        resp_headers = dict(response.headers)
+        resp_headers['Access-Control-Allow-Origin'] = '*'
+        resp_headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        resp_headers['Access-Control-Allow-Headers'] = '*'
+        
+        return Response(
+            response.raw.read(),
+            status=response.status_code,
+            headers=resp_headers
+        )
+        
+    except Exception as e:
+        logger.error(f"Error proxying WebUI request: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# 添加 WebUI 根路径代理
+@app.route('/webui/', methods=['GET', 'POST', 'OPTIONS'])
+def proxy_webui_root():
+    try:
+        # 使用容器的实际 IP 地址
+        container_ip = "10.88.0.2"  # podman 容器的 IP
+        headers = {
+            'Host': f'{container_ip}:3000',
+            'Origin': f'http://{container_ip}:3000'
+        }
+        
+        try:
+            params = request.args.to_dict()
+            response = requests.get(f'http://{container_ip}:3000/', headers=headers, params=params, timeout=2)
+            resp_headers = dict(response.headers)
+            resp_headers['Access-Control-Allow-Origin'] = '*'
+            resp_headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            resp_headers['Access-Control-Allow-Headers'] = '*'
+            
+            return response.content, response.status_code, resp_headers.items()
+        except requests.exceptions.ConnectionError:
+            return jsonify({'error': 'WebUI service is not running'}), 503
+            
+    except Exception as e:
+        logger.error(f"Error proxying WebUI root: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/static/webui.html')
+def serve_webui_page():
+    return send_from_directory('static', 'webui.html')
 
 if __name__ == '__main__':
     logger.info(f"Server starting on http://0.0.0.0:8000")

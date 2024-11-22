@@ -30,6 +30,9 @@
                 <p>当前为Ollama 量化Qwen2.5 7B 的LLM</p>
             </div>
             <div class="content-wrapper">
+                <div class="webui-controls">
+                    <button id="openWebUI" class="webui-button">OpenWebUI</button>
+                </div>
                 <div class="chat-container">
                     <div class="chat-messages" id="chatMessages">
                         <div class="message assistant">
@@ -72,7 +75,7 @@
                         
                         <p>例子：</p>
                         <blockquote class="example-text">
-                            王波啊，我的波波，我最最亲爱的波波， 现在我终于可以给你打电话了。我和你说句掏心窝子的话，这几年，我真他妈太难啦。你每天爬山，喝酒，打羽毛球。 我每天干啥？ 一会儿挨枪子儿，一会儿被人抓监狱的。 现在老子，川建国，又回来啦。
+                            王波啊，我的波波，我最最亲爱的波波， 现在我终于可以给你打电话了。我和你说句掏心窝子的话，这几年，我真他妈太难啦。你每天爬山，喝酒，打羽毛球。 我每天干啥？ 一会儿挨枪子儿��一会儿被人抓监狱的。 现在老子，川建国，又回来啦。
                         </blockquote>
                         <button id="playAudio" class="audio-button">
                             <img src="static/images/photo4.jpeg" alt="Trump" class="button-icon">
@@ -143,32 +146,6 @@
                 <div class="comfy-controls">
                     <button id="openComfyUI" class="comfy-button">ComfyUI</button>
                     <button id="openOmniGen" class="comfy-button">Gradio-OmniGen</button>
-                </div>
-                <!-- ComfyUI 模态框 -->
-                <div id="comfyuiModal" class="comfyui-modal">
-                    <div class="comfyui-modal-content">
-                        <span class="comfyui-close">&times;</span>
-                        <div class="comfyui-container">
-                            <iframe 
-                                id="comfyuiFrame"
-                                frameborder="0"
-                                allowfullscreen>
-                            </iframe>
-                        </div>
-                    </div>
-                </div>
-                <!-- OmniGen 模态框 -->
-                <div id="omnigenModal" class="comfyui-modal">
-                    <div class="comfyui-modal-content">
-                        <span class="omnigen-close">&times;</span>
-                        <div class="comfyui-container">
-                            <iframe 
-                                id="omnigenFrame"
-                                frameborder="0"
-                                allowfullscreen>
-                            </iframe>
-                        </div>
-                    </div>
                 </div>
             </div>
         </section>

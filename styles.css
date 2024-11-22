@@ -735,4 +735,31 @@ main {
     font-style: italic;
     color: #333;
 }
+
+/* OpenWebUI 按钮样式 */
+.webui-controls {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.webui-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 150px;
+}
+
+.webui-button:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+}
+
+.webui-button:active {
+    transform: translateY(0);
+}
   

@@ -1,6 +1,37 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('页面加载完成');
 
+    // 初始化 AI 图片功能
+    initAIGallery();
+
+    // 添加 OpenWebUI 按钮事件
+    const webuiBtn = document.getElementById('openWebUI');
+    console.log('WebUI button found:', webuiBtn);
+    if (webuiBtn) {
+        webuiBtn.onclick = function() {
+            console.log('WebUI button clicked');
+            window.open(`${window.location.origin}/static/webui.html`, '_blank');
+        }
+    }
+
+    // 添加生图试验区按钮事件
+    const comfyBtn = document.getElementById('openComfyUI');
+    const omniBtn = document.getElementById('openOmniGen');
+
+    if (comfyBtn) {
+        comfyBtn.onclick = function() {
+            console.log('ComfyUI button clicked');
+            window.open(`${window.location.origin}/static/comfyui.html`, '_blank');
+        }
+    }
+
+    if (omniBtn) {
+        omniBtn.onclick = function() {
+            console.log('OmniGen button clicked');
+            window.open(`${window.location.origin}/static/omnigen.html`, '_blank');
+        }
+    }
+
     // 导航功能
     const navLinks = document.querySelectorAll('.nav-links a');
     const sections = document.querySelectorAll('.section');
@@ -224,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // 添加在适当的位置
+    // 添加在适当位置
     function logToConsole(message, type = 'info') {
         const timestamp = new Date().toISOString();
         const logMessage = `[${timestamp}] ${message}`;
@@ -285,6 +316,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const imageGrid = document.querySelector('.ai-image-grid');
         const refreshButton = document.getElementById('refreshButton');
         const cleanupButton = document.getElementById('cleanupButton');
+
+        // 确保 loadExistingImages 被调用
+        loadExistingImages();
 
         // 添加一个标志来追踪是否已经加载过图片
         let imagesLoaded = false;
@@ -416,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.style.display = "none";
         });
 
-        // 点击模态框外部关闭
+        // 点击模态框部关闭
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.style.display = "none";
@@ -493,8 +527,23 @@ document.addEventListener('DOMContentLoaded', function() {
         cleanupButton.addEventListener('click', cleanupImages);
     }
 
-    // 在现有的 DOMContentLoaded 事件监听器中调用
-    initAIGallery();
+    // 初始化顺序
+    initCarousel();
+    initImageGenerators();  // 先初始化生图试验区按钮
+    
+    // 只在切换到 AI 图片页面时初始化
+    const aiGallery = document.getElementById('ai-gallery');
+    if (aiGallery) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    initAIGallery();  // 延迟初始化 AI 图片功能
+                    observer.disconnect();  // 只初始化一次
+                }
+            });
+        });
+        observer.observe(aiGallery);
+    }
 
     // 在 initAIGallery 函数中添加
     function updateComfyUIFrameSrc() {
@@ -509,25 +558,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // 在页面加和切换到 ComfyUI 标签时调用
     document.addEventListener('DOMContentLoaded', updateComfyUIFrameSrc);
 
-    function initImageGenerators() {
-        console.log('Initializing image generators...');
-        
-        const comfyBtn = document.getElementById('openComfyUI');
-        const omniBtn = document.getElementById('openOmniGen');
-
-        // ComfyUI 按钮点击事件
-        comfyBtn.onclick = function() {
-            console.log('ComfyUI button clicked');
-            // 使用完整的 URL 路径
-            window.open(`${window.location.origin}/static/comfyui.html`, '_blank');
+    // 在 DOMContentLoaded 事件监听器中添加
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'openImage') {
+            // 找到并打开对应的图片
+            const images = document.querySelectorAll('.image-container img');
+            images.forEach(img => {
+                if (img.src.includes(event.data.filename)) {
+                    // 触发点击事件打开图片
+                    img.click();
+                }
+            });
         }
-
-        // OmniGen 按钮点击事件
-        omniBtn.onclick = function() {
-            console.log('OmniGen button clicked');
-            // 使用完整的 URL 路径
-            window.open(`${window.location.origin}/static/omnigen.html`, '_blank');
-        }
-    }
-
+    });
 }); 
