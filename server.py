@@ -89,7 +89,7 @@ def allowed_file(filename):
 
 @app.route('/')
 def serve_index():
-    return send_from_directory('.', 'index.html')
+    return send_from_directory('docs', 'index.html')
 
 @app.route('/static/<path:path>')
 def serve_static(path):
@@ -101,11 +101,11 @@ def serve_static(path):
 
 @app.route('/script.js')
 def serve_script():
-    return send_from_directory('.', 'script.js')
+    return send_from_directory('docs', 'script.js')
 
 @app.route('/styles.css')
 def serve_styles():
-    return send_from_directory('.', 'styles.css')
+    return send_from_directory('docs', 'styles.css')
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -299,7 +299,7 @@ def refresh_images():
         # 2. 检查当前目录中的图片数量
         current_files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) 
                         if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], f))]
-        logger.info(f"当前目录中有 {len(current_files)} 张图片")
+        logger.info(f"当前目录中有 {len(current_files)} ��图片")
         
         # 3. 从数据库获取最新的10张图片记录
         images = Image.query.order_by(Image.upload_date.desc()).limit(10).all()
